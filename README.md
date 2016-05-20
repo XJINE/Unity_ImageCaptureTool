@@ -33,3 +33,7 @@ OnGUI で各種コントロールを描画しています。
 
 再度アクティブになる、リサイズするなどするとウィンドウが再描画されます。
 また内部的にはデータが更新されています(GameView の解像度が正しく取得されています)。
+
+## ScreenShot
+
+![](https://github.com/XJINE/Unity3D_ImageCaptureTool/blob/master/screenshot.png)
