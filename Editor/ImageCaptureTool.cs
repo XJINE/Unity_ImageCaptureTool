@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Reflection;
+﻿using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,13 +9,6 @@ using UnityEngine;
 // 現在のところ無効なディレクトリまたはファイル名であることを確認しません。
 // 任意のディレクトリ、ファイル名を指定するときは、
 // 実行者自身が安全な名前であることを保証する必要があります。
-// 
-// OnGUI で各種コントロールを描画しています。
-// したがって、GameView の解像度が変更されても、このウィンドウが再描画されるまで、
-// このコントロールに表示される GameView の解像度の変更が視認できません。
-// 
-// 再度アクティブになる、リサイズするなどするとウィンドウが再描画されます。
-// また内部的にはデータが更新されています(GameView の解像度が正しく取得されています)。
 
 #if UNITY_EDITOR
 
@@ -109,11 +100,11 @@ public class ImageCaptureTool : EditorWindow
     }
 
     /// <summary>
-    /// Window が有効になったときに実行されます。
+    /// Window が有効になったとき実行されます。
     /// </summary>
     void OnEnable()
     {
-        // nothing to do.
+        EditorApplication.update += ForceOnGUI;
     }
 
     /// <summary>
@@ -240,6 +231,19 @@ public class ImageCaptureTool : EditorWindow
     }
 
     /// <summary>
+    /// GameView の解像度情報を更新するために再描画します。
+    /// </summary>
+    private void ForceOnGUI()
+    {
+        // 毎フレーム更新・再描画すると処理不可が大きいので、更新レートを落とします。
+
+        if (System.DateTime.Now.Millisecond % 5 == 0)
+        {
+            Repaint();
+        }
+    }
+
+    /// <summary>
     /// GameView の大きさを取得します。
     /// </summary>
     /// </summary>
@@ -342,24 +346,21 @@ public class ImageCaptureTool : EditorWindow
         // カメラに出力用の RenderTexture を設定してレンダリングを実行し、
         // その情報を Texture2D に保存して返す。
 
-        RenderTexture outputRenderTexture = new RenderTexture(fixedWidth,
-                                                              fixedHiehgt,
-                                                              bit);
+        RenderTexture outputRenderTexture
+            = new RenderTexture(fixedWidth, fixedHiehgt, bit);
         fixedCamera.targetTexture = outputRenderTexture;
 
         Texture2D captureImage = new Texture2D(fixedWidth,
-                                        fixedHiehgt,
-                                        TextureFormat.ARGB32,
-                                        false);
+                                               fixedHiehgt,
+                                               TextureFormat.ARGB32,
+                                               false);
 
         fixedCamera.Render();
 
         RenderTexture.active = outputRenderTexture;
 
         captureImage.ReadPixels
-            (new Rect(0, 0, fixedWidth, fixedHiehgt),
-                      0,
-                      0);
+            (new Rect(0, 0, fixedWidth, fixedHiehgt), 0, 0);
 
         // 設定を元に戻します。
 
