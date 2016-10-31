@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using UnityEditor;
 using UnityEngine;
+using System.Collections.Generic;
 
 // ------------------------------------------------------------------------------------------------
 // 現状と仕様
@@ -17,6 +18,26 @@ using UnityEngine;
 /// </summary>
 public class ImageCaptureTool : EditorWindow
 {
+    #region Define
+    /// <summary>
+    /// カメラデータクラス
+    /// </summary>
+    [System.Serializable]
+    public class CameraData
+    {
+        public bool enable = true;      // キャプチャするか否かのフラグ
+        public Camera camera = null;    // キャプチャするカメラオブジェクト
+        public string suffix = "";      // ファイル名の末尾につける文字列
+        public int width = 0;           // キャプチャする解像度の幅
+        public int height = 0;          // キャプチャする解像度の高さ
+
+        public CameraData(string suf)
+        {
+            suffix = suf;
+        }
+    }
+    #endregion
+
     #region Filed
 
     /// <summary>
@@ -53,22 +74,9 @@ public class ImageCaptureTool : EditorWindow
     public int currentFileNameIndex = 0;
 
     /// <summary>
-    /// キャプチャ画像を出力するカメラ。
-    /// 指定しないとき MainCamera の画像を出力します。
+    /// カメラデータリスト。
     /// </summary>
-    public Camera camera = null;
-
-    /// <summary>
-    /// キャプチャ画像の水平方向の解像度。
-    /// 0 のとき GameView の水平方向の解像度になります。
-    /// </summary>
-    public int imageWidth = 0;
-
-    /// <summary>
-    /// キャプチャ画像の垂直方向の解像度。
-    /// 0 のとき GameView の垂直方向の解像度になります。
-    /// </summary>
-    public int imageHeight = 0;
+    public List<CameraData> cameraList = new List<CameraData>();
 
     /// <summary>
     /// キャプチャ画像の解像度の倍率。
@@ -100,11 +108,19 @@ public class ImageCaptureTool : EditorWindow
     }
 
     /// <summary>
-    /// Window が有効になったとき実行されます。
+    /// Window が有効になったときに実行されます。
     /// </summary>
     void OnEnable()
     {
         EditorApplication.update += ForceOnGUI;
+    }
+
+    /// <summary>
+    /// Window が無効になったときに実行されます。
+    /// </summary>
+    void OnDisable()
+    {
+        EditorApplication.update -= ForceOnGUI;
     }
 
     /// <summary>
@@ -195,25 +211,54 @@ public class ImageCaptureTool : EditorWindow
 
         this.currentFileNameIndex = EditorGUILayout.IntField(this.currentFileNameIndex);
 
-        EditorGUILayout.LabelField
-            ("画像をキャプチャするカメラを指定します。指定しないとき MainCamera の画像をキャプチャします。",
-             marginStyle);
-
-        this.camera = EditorGUILayout.ObjectField("Camera", this.camera, typeof(Camera), true) as Camera;
 
         int[] gameViewResolution = GetGameViewResolution();
 
-        EditorGUILayout.LabelField
+        EditorGUILayout.Separator();
+        for (int i = 0; i < cameraList.Count; i++)
+        {
+            CameraData data = cameraList[i];
+            GUILayout.Box("", GUILayout.Width(this.position.width), GUILayout.Height(1));
+            data.enable = EditorGUILayout.Toggle("Camera[" + i + "]キャプチャ", data.enable);
+
+            EditorGUILayout.LabelField
+                ("キャプチャ画像のファイル名の末尾につける文字列を指定します。",
+                 marginStyle);
+            data.suffix = EditorGUILayout.TextField("Suffix", data.suffix);
+
+            EditorGUILayout.LabelField
+                ("画像をキャプチャするカメラを指定します。指定しないとき MainCamera の画像をキャプチャします。",
+                 marginStyle);
+
+            data.camera = EditorGUILayout.ObjectField("Camera", data.camera, typeof(Camera), true) as Camera;
+
+            EditorGUILayout.LabelField
             ("キャプチャ画像の水平方向の解像度。0 のとき、GameView の解像度(" + gameViewResolution[0] + ")になります。",
              marginStyle);
 
-        this.imageWidth = EditorGUILayout.IntSlider(this.imageWidth, 0, 9999);
+            data.width = EditorGUILayout.IntSlider(data.width, 0, 9999);
 
-        EditorGUILayout.LabelField
-            ("出力する画像の垂直方向の解像度。0 のとき、GameView の解像度(" + gameViewResolution[1] + ")になります。",
-             marginStyle);
+            EditorGUILayout.LabelField
+                ("出力する画像の垂直方向の解像度。0 のとき、GameView の解像度(" + gameViewResolution[1] + ")になります。",
+                 marginStyle);
 
-        this.imageHeight = EditorGUILayout.IntSlider(this.imageHeight, 0, 9999);
+            data.height = EditorGUILayout.IntSlider(data.height, 0, 9999);
+        }
+        
+        EditorGUILayout.BeginHorizontal(GUI.skin.label);
+        {
+            if (GUILayout.Button("+"))
+            {
+                cameraList.Add(new CameraData("Camera_" + cameraList.Count.ToString()));
+            }
+            if ((GUILayout.Button("-"))&&(cameraList.Count>0))
+            {
+                cameraList.RemoveAt(cameraList.Count - 1);
+            }
+        }
+        EditorGUILayout.EndHorizontal();
+        GUILayout.Box("", GUILayout.Width(this.position.width), GUILayout.Height(1));
+        EditorGUILayout.Separator();
 
         EditorGUILayout.LabelField
             ("キャプチャ画像の解像度の倍率。2 を設定するとき、指定した解像度の 2 倍の解像度になります。",
@@ -273,24 +318,29 @@ public class ImageCaptureTool : EditorWindow
             return;
         }
 
-        string outputFileName = GetOutputFileName();
-
-        try
+        for (int i = 0; i < cameraList.Count; i++)
         {
-            Texture2D texture = GenerateCaptureImage();
-            byte[] bytes = texture.EncodeToPNG();
+            if (!cameraList[i].enable) continue;
 
-            File.WriteAllBytes(outputFileName, bytes);
+            try
+            {
+                Texture2D texture = GenerateCaptureImage(cameraList[i]);
+                byte[] bytes = texture.EncodeToPNG();
 
-            this.currentFileNameIndex += 1;
+                string outputFileName = GetOutputPath() + GetOutputFileName() + cameraList[i].suffix + ".png";
 
-            DestroyImmediate(texture);
+                File.WriteAllBytes(outputFileName, bytes);
 
-            ShowCaptureResult(true, "Success : " + outputFileName);
-        }
-        catch
-        {
-            ShowCaptureResult(false, "Error : " + outputFileName);
+                this.currentFileNameIndex += 1;
+
+                DestroyImmediate(texture);
+
+                ShowCaptureResult(true, "Success : " + outputFileName);
+            }
+            catch
+            {
+                ShowCaptureResult(false, "Error : " + outputFileName);
+            }
         }
     }
 
@@ -300,21 +350,21 @@ public class ImageCaptureTool : EditorWindow
     /// <returns>
     /// キャプチャされたイメージが与えられた Texture2D 。
     /// </returns>
-    private Texture2D GenerateCaptureImage()
+    private Texture2D GenerateCaptureImage(CameraData data)
     {
         Camera fixedCamera;
-
-        if (this.camera == null)
+        
+        if (data.camera == null)
         {
             fixedCamera = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<Camera>();
         }
         else
         {
-            fixedCamera = this.camera;
+            fixedCamera = data.camera;
         }
 
-        int fixedWidth = this.imageWidth;
-        int fixedHiehgt = this.imageHeight;
+        int fixedWidth = data.width;
+        int fixedHiehgt = data.height;
         int bit = 32;
 
         int[] gameViewResolution = GetGameViewResolution();
@@ -346,14 +396,15 @@ public class ImageCaptureTool : EditorWindow
         // カメラに出力用の RenderTexture を設定してレンダリングを実行し、
         // その情報を Texture2D に保存して返す。
 
-        RenderTexture outputRenderTexture
-            = new RenderTexture(fixedWidth, fixedHiehgt, bit);
+        RenderTexture outputRenderTexture = new RenderTexture(fixedWidth,
+                                                              fixedHiehgt,
+                                                              bit);
         fixedCamera.targetTexture = outputRenderTexture;
 
         Texture2D captureImage = new Texture2D(fixedWidth,
-                                               fixedHiehgt,
-                                               TextureFormat.ARGB32,
-                                               false);
+                                        fixedHiehgt,
+                                        TextureFormat.ARGB32,
+                                        false);
 
         fixedCamera.Render();
 
@@ -380,16 +431,15 @@ public class ImageCaptureTool : EditorWindow
     }
 
     /// <summary>
-    /// 最終的に出力するファイル名を取得します。ディレクトリ名を含むフルパスを取得します。
+    /// 最終的に出力するパスを取得します。
     /// </summary>
     /// <returns>
-    /// 出力するファイル名。
+    /// 出力するパス
     /// </returns>
-    private string GetOutputFileName()
+    private string GetOutputPath()
     {
         string fixedDirectory = this.outputDirectory;
-        string fixedFileName = this.outputFileName;
-
+        
         if (fixedDirectory == null || fixedDirectory.Equals(""))
         {
             fixedDirectory = Application.dataPath + "/";
@@ -398,13 +448,26 @@ public class ImageCaptureTool : EditorWindow
         {
             fixedDirectory = fixedDirectory + "/";
         }
+        
+        return fixedDirectory;
+    }
 
+    /// <summary>
+    /// 最終的に出力するファイル名を取得します。
+    /// </summary>
+    /// <returns>
+    /// 出力するファイル名。
+    /// </returns>
+    private string GetOutputFileName()
+    {
+        string fixedFileName = this.outputFileName;
+        
         if (fixedFileName.Equals(""))
         {
             fixedFileName = ImageCaptureTool.BaseOutputFileName;
         }
 
-        return fixedDirectory + fixedFileName + this.currentFileNameIndex + ".png";
+        return fixedFileName + this.currentFileNameIndex;
     }
 
     /// <summary>
