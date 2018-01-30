@@ -1,6 +1,6 @@
 # Unity_ImageCaptureTool
 
-Capture & output image with specified camera. This is utility for screenshot, transparent texture.
+Capture image & output the file with specified camera. This is utility for screenshot, transparent texture.
 
 ## How to
 
