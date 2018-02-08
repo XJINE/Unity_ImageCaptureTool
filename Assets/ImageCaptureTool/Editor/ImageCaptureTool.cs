@@ -61,7 +61,7 @@ public class ImageCaptureTool : EditorWindow
 
         if (GUILayout.Button("Click to Capture"))
         {
-            HookAfterImageCaptured(CaptureImage());
+            HookAfterImageCaptured(Capture());
         }
 
         // Output directory.
@@ -147,7 +147,7 @@ public class ImageCaptureTool : EditorWindow
         };
     }
 
-    protected CaptureImageResult CaptureImage()
+    protected CaptureImageResult Capture()
     {
         if (Application.platform != RuntimePlatform.OSXEditor && Application.platform != RuntimePlatform.WindowsEditor)
         {
