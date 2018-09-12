@@ -1,7 +1,6 @@
 ﻿using System;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class ImageCaptureTool : EditorWindow
 {
@@ -22,8 +21,6 @@ public class ImageCaptureTool : EditorWindow
     public int imageScale  = 1;
 
     public bool clearBack = false;
-
-    public UnityEvent test;
 
     private Vector2 scrollPosition = Vector2.zero;
 
