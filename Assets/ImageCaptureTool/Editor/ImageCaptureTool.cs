@@ -1,20 +1,10 @@
 ﻿using System;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class ImageCaptureTool : EditorWindow
 {
-    #region Class
-
-    public class CaptureImageResult
-    {
-        public ImageCaptureTool tool;
-        public bool success;
-        public string outputFileName;
-    }
-
-    #endregion Class
-
     #region Filed
 
     public string outputDirectory = null;
@@ -33,6 +23,8 @@ public class ImageCaptureTool : EditorWindow
 
     public bool clearBack = false;
 
+    public UnityEvent test;
+
     private Vector2 scrollPosition = Vector2.zero;
 
     #endregion Field
@@ -48,6 +40,11 @@ public class ImageCaptureTool : EditorWindow
     protected void OnEnable()
     {
         EditorApplication.update += ForceOnGUI;
+    }
+
+    protected void OnDisable()
+    {
+        EditorApplication.update -= ForceOnGUI;
     }
 
     protected void OnGUI()
@@ -147,45 +144,36 @@ public class ImageCaptureTool : EditorWindow
         };
     }
 
-    protected CaptureImageResult Capture()
+    protected ImageCaptureToolCore.CaptureResult Capture()
     {
-        if (Application.platform != RuntimePlatform.OSXEditor && Application.platform != RuntimePlatform.WindowsEditor)
-        {
-            return new CaptureImageResult() { tool = this, success = false, outputFileName = null };
-        }
-
-        string outputFileName = ImageCaptureToolCore.GetOutputPath(this.outputDirectory,
-                                                                   this.outputFileName,
-                                                                   this.outputFileNameIndex);
-
-        Camera camera = this.camera == null ? Camera.main : this.camera;
+        Camera camera = this.camera ?? Camera.main;
 
         int[] gameViewResolution = GetGameViewResolution();
         int imageWidth  = (this.imageWidth  == 0 ? gameViewResolution[0] : this.imageWidth)  * this.imageScale;
         int imageHeight = (this.imageHeight == 0 ? gameViewResolution[1] : this.imageHeight) * this.imageScale;
 
-        bool success = ImageCaptureToolCore.Capture(camera,
-                                                    imageWidth,
-                                                    imageHeight,
-                                                    this.clearBack,
-                                                    this.outputDirectory,
-                                                    this.outputFileName,
-                                                    this.outputFileNameIndex);
+        ImageCaptureToolCore.CaptureResult result
+        = ImageCaptureToolCore.Capture(camera,
+                                       imageWidth,
+                                       imageHeight,
+                                       this.clearBack,
+                                       this.outputDirectory,
+                                       this.outputFileName + this.outputFileNameIndex.ToString());
 
-        if (success)
+        if (result.success)
         {
-            this.ShowNotification(new GUIContent("SUCCESS : " + outputFileName));
+            this.ShowNotification(new GUIContent("SUCCESS : " + result.outputPath));
             this.outputFileNameIndex++;
         }
         else 
         {
-            this.ShowNotification(new GUIContent("ERROR : " + outputFileName));
+            this.ShowNotification(new GUIContent("ERROR : " + result.outputPath));
         }
 
-        return new CaptureImageResult() { tool = this, success = success, outputFileName = outputFileName };
+        return result;
     }
 
-    protected virtual void HookAfterImageCaptured(CaptureImageResult result)
+    protected virtual void HookAfterImageCaptured(ImageCaptureToolCore.CaptureResult result)
     {
         // Nothing to do in here. This is used for inheritance.
     }
