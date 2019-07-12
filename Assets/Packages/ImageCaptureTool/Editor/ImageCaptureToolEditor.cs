@@ -2,13 +2,13 @@
 using UnityEditor;
 using UnityEngine;
 
-public class ImageCaptureTool : EditorWindow
+public class ImageCaptureToolEditor : EditorWindow
 {
     #region Filed
 
     public string outputDirectory = null;
 
-    public string outputFileName = ImageCaptureToolCore.DefaultOutputFileName;
+    public string outputFileName = ImageCaptureTool.DefaultOutputFileName;
 
     public int outputFileNameIndex = 0;
 
@@ -31,7 +31,7 @@ public class ImageCaptureTool : EditorWindow
     [MenuItem("Custom/ImageCaptureTool")]
     static void Init()
     {
-        EditorWindow.GetWindow<ImageCaptureTool>("ImageCaptureTool");
+        EditorWindow.GetWindow<ImageCaptureToolEditor>("ImageCaptureTool");
     }
 
     protected void OnEnable()
@@ -141,7 +141,7 @@ public class ImageCaptureTool : EditorWindow
         };
     }
 
-    protected ImageCaptureToolCore.CaptureResult Capture()
+    protected ImageCaptureTool.CaptureResult Capture()
     {
         Camera camera = this.camera ?? Camera.main;
 
@@ -149,13 +149,14 @@ public class ImageCaptureTool : EditorWindow
         int imageWidth  = (this.imageWidth  == 0 ? gameViewResolution[0] : this.imageWidth)  * this.imageScale;
         int imageHeight = (this.imageHeight == 0 ? gameViewResolution[1] : this.imageHeight) * this.imageScale;
 
-        ImageCaptureToolCore.CaptureResult result
-        = ImageCaptureToolCore.Capture(camera,
-                                       imageWidth,
-                                       imageHeight,
-                                       this.clearBack,
-                                       this.outputDirectory,
-                                       this.outputFileName + this.outputFileNameIndex.ToString());
+        ImageCaptureTool.CaptureResult result
+        = ImageCaptureTool.Capture(camera,
+                                   imageWidth,
+                                   imageHeight,
+                                   this.clearBack,
+                                   this.outputDirectory,
+                                   this.outputFileName
+                                 + this.outputFileNameIndex.ToString());
 
         if (result.success)
         {
@@ -170,7 +171,7 @@ public class ImageCaptureTool : EditorWindow
         return result;
     }
 
-    protected virtual void HookAfterImageCaptured(ImageCaptureToolCore.CaptureResult result)
+    protected virtual void HookAfterImageCaptured(ImageCaptureTool.CaptureResult result)
     {
         // Nothing to do in here. This is used for inheritance.
     }

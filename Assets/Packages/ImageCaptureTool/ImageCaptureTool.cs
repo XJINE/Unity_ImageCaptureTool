@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using UnityEngine;
 
-public static class ImageCaptureToolCore
+public static class ImageCaptureTool
 {
     #region Field
 
@@ -64,6 +64,7 @@ public static class ImageCaptureToolCore
             Texture2D captureImage = Capture(camera, width, height, clearBack);
 
             File.WriteAllBytes(outputPath, captureImage.EncodeToPNG());
+
             GameObject.DestroyImmediate(captureImage);
 
             return new CaptureResult(true,
@@ -92,16 +93,12 @@ public static class ImageCaptureToolCore
 
     public static Texture2D Capture(Camera camera, int width, int height, bool clearBack)
     {
-        if (camera == null) 
-        {
-            throw new System.Exception("camera must not be null.");
-        }
-
+        // NOTE:
         // Keep presets.
 
-        Color            presetBackgroundColor = camera.backgroundColor;
-        CameraClearFlags presetClearFlags      = camera.clearFlags;
-        RenderTexture    presetRenderTexture   = camera.targetTexture;
+        Color            tempBackgroundColor = camera.backgroundColor;
+        CameraClearFlags tempClearFlags      = camera.clearFlags;
+        RenderTexture    tempTargetTexture   = camera.targetTexture;
 
         if (clearBack)
         {
@@ -109,8 +106,11 @@ public static class ImageCaptureToolCore
             camera.clearFlags = CameraClearFlags.SolidColor;
         }
 
-        RenderTexture captureImageTemp = RenderTexture.GetTemporary(width, height, 32, RenderTextureFormat.ARGB32);
-        Texture2D captureImage = new Texture2D(width, height, TextureFormat.ARGB32, false);
+        RenderTexture captureImageTemp;
+        Texture2D captureImage;
+
+        captureImageTemp = RenderTexture.GetTemporary(width, height, 32, RenderTextureFormat.ARGB32);
+        captureImage = new Texture2D(width, height, TextureFormat.ARGB32, false);
 
         camera.targetTexture = captureImageTemp;
         camera.Render();
@@ -121,11 +121,12 @@ public static class ImageCaptureToolCore
         RenderTexture.active = null;
         RenderTexture.ReleaseTemporary(captureImageTemp);
 
+        // NOTE:
         // Reset settings.
 
-        camera.backgroundColor = presetBackgroundColor;
-        camera.clearFlags      = presetClearFlags;
-        camera.targetTexture   = presetRenderTexture;
+        camera.backgroundColor = tempBackgroundColor;
+        camera.clearFlags      = tempClearFlags;
+        camera.targetTexture   = tempTargetTexture;
 
         return captureImage;
     }
@@ -133,10 +134,10 @@ public static class ImageCaptureToolCore
     private static void GetOutputFilePath(string directory,
                                           string file,
                                           string extension,
-                                          out string outputDirectory,
-                                          out string outputFile,
-                                          out string outputExtension,
-                                          out string outputPath)
+                                      out string outputDirectory,
+                                      out string outputFile,
+                                      out string outputExtension,
+                                      out string outputPath)
     {
         outputDirectory = directory;
         outputFile      = file;
@@ -153,7 +154,7 @@ public static class ImageCaptureToolCore
 
         if (string.IsNullOrEmpty(outputFile))
         {
-            outputFile = ImageCaptureToolCore.DefaultOutputFileName;
+            outputFile = ImageCaptureTool.DefaultOutputFileName;
         }
 
         outputPath = outputDirectory + outputFile + "." + outputExtension;
