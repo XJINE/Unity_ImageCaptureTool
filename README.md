@@ -30,7 +30,7 @@ Open window from toolbar "Custom/ImageCaptureTool". Set the parameters & click "
 
 ## Via Script
 
-``ImageCaptureToolCore.cs`` has functions to capture image.
+``ImageCaptureTool.cs`` has functions to capture image.
 
 ## Limitation
 
