@@ -143,7 +143,7 @@ public class ImageCaptureToolEditor : EditorWindow
 
     protected ImageCaptureTool.CaptureResult Capture()
     {
-        Camera camera = this.camera ?? Camera.main;
+        Camera camera = this.camera ?? SceneView.lastActiveSceneView.camera;
 
         int[] gameViewResolution = GetGameViewResolution();
         int imageWidth  = (this.imageWidth  == 0 ? gameViewResolution[0] : this.imageWidth)  * this.imageScale;
